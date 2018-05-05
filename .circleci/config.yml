@@ -23,11 +23,11 @@ linuxkit_pkg_build: &linuxkit_pkg_build
         command: |
           PKG=${CIRCLE_JOB#pkg-}
           mkdir /workspace/packages
-          linuxkit pkg build pkg/$PKG
+          linuxkit pkg build -org kuberneteskit -disable-content-trust pkg/$PKG
           linuxkit pkg show-tag pkg/$PKG > /workspace/packages/$PKG.tag
           echo
           docker image ls --all
-          docker image save -o /workspace/packages/$PKG.tar linuxkit/$PKG
+          docker image save -o /workspace/packages/$PKG.tar kuberneteskit/$PKG
     - persist_to_workspace:
         root: /workspace
         paths:

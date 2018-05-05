@@ -1,5 +1,7 @@
 # kuberneteskit
 
+[![CircleCI](https://circleci.com/gh/kuberneteskit/kuberneteskit.svg?style=svg)](https://circleci.com/gh/kuberneteskit/kuberneteskit)
+
 This project takes inspiration from LinuxKit and LinuxKit Kubernetes, but instead of running the kubelet in a container, it adds the kubelet (and some minimal dependencies) to the base init
 
 This is currently a very rough work in progress
