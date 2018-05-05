@@ -1,0 +1,101 @@
+linuxkit_pkg_build: &linuxkit_pkg_build
+  docker:
+    - image: debian:stretch
+  steps:
+    - run:
+        name: Configure $PATH
+        command: echo 'export PATH=/workspace/bin:$PATH' >> $BASH_ENV
+    - run:
+        name: Install packages
+        # ca-certificates are needed for attach_workspace (and git over https)
+        command: apt-get update && apt-get install -y ca-certificates git openssh-client
+    - attach_workspace:
+        at: /workspace
+    - checkout
+    - setup_remote_docker:
+        version: 17.06.1-ce
+    - run:
+        name: Docker version
+        command: |
+          docker version
+    - run:
+        name: Building package
+        command: |
+          PKG=${CIRCLE_JOB#pkg-}
+          mkdir /workspace/packages
+          linuxkit pkg build pkg/$PKG
+          linuxkit pkg show-tag pkg/$PKG > /workspace/packages/$PKG.tag
+          echo
+          docker image ls --all
+          docker image save -o /workspace/packages/$PKG.tar linuxkit/$PKG
+    - persist_to_workspace:
+        root: /workspace
+        paths:
+        - packages
+
+version: 2
+jobs:
+  dependencies:
+    docker:
+      - image: debian:stretch
+    steps:
+      - run:
+          name: Create workspace
+          command: mkdir -p /workspace/bin
+      - run:
+          name: Install packages
+          command: apt-get update && apt-get install -y ca-certificates curl
+      - run:
+          name: Fetch binaries
+          command: |
+            curl -fsSL -o /tmp/docker.tgz https://download.docker.com/linux/static/stable/x86_64/docker-18.03.0-ce.tgz
+            tar xfO /tmp/docker.tgz docker/docker > /workspace/bin/docker
+            # To update find the most recent successful build at https://circleci.com/gh/linuxkit/linuxkit/tree/master
+            # and find the link + SHA256 in the `Artifacts` tab
+            curl -fsSL -o /workspace/bin/linuxkit https://github.com/linuxkit/linuxkit/releases/download/v0.3/linuxkit-linux-amd64
+            curl -fsSL -o /workspace/bin/manifest-tool https://github.com/estesp/manifest-tool/releases/download/v0.7.0/manifest-tool-linux-amd64
+            curl -fsSL -o /workspace/bin/notary https://github.com/theupdateframework/notary/releases/download/v0.6.0/notary-Linux-amd64
+
+            echo "Downloaded:"
+            sha256sum /workspace/bin/*
+            echo
+
+            echo "Checking checksums"
+            sha256sum -c <<EOF
+            f5ea546a4ccd64fbb71825f964171256388f1181b000f3c56747075e383c81c6  /workspace/bin/docker
+            7058bb86c6eeab6faf563c7c61537579e7a493b9e1f74835a554f0ac7345e1bf  /workspace/bin/linuxkit
+            e4ca2ef0015a4be8597d31d9e3e70d88da33924ae72b0999e9f3b79304d4710d  /workspace/bin/manifest-tool
+            f4e421b3bb3c32c39372f7f02fbe80c67580cccd381f9722b1c702b3ab63a1c7  /workspace/bin/notary
+            EOF
+      - run:
+          name: Versions
+          command: |
+             chmod +x /workspace/bin/docker # docker version deferred until daemon configured in relevant jobs
+             chmod +x /workspace/bin/linuxkit && /workspace/bin/linuxkit version
+             chmod +x /workspace/bin/manifest-tool && /workspace/bin/manifest-tool --version
+             chmod +x /workspace/bin/notary && /workspace/bin/notary version
+      - persist_to_workspace:
+          root: /workspace
+          paths:
+          - bin
+  pkg-cni-plugins:
+    <<: *linuxkit_pkg_build
+  pkg-critools:
+    <<: *linuxkit_pkg_build
+  pkg-kubelet:
+    <<: *linuxkit_pkg_build
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - dependencies
+      - pkg-cni-plugins:
+          requires:
+            - dependencies
+      - pkg-critools:
+          requires:
+            - dependencies
+      - pkg-kubelet:
+          requires:
+            - dependencies

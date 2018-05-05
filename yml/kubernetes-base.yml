@@ -1,0 +1,78 @@
+kernel:
+  image: linuxkit/kernel:4.14.39
+  cmdline: "console=tty0 console=ttyS0"
+init:
+  - linuxkit/init:11929b0007b87384f7372e9265067479c4616586
+  - linuxkit/runc:acba8886e4b1318457c711700f695a02fef9493d
+  - linuxkit/containerd:f197e7cbb2ede4370b75127c76de6f7b2e3d9873
+  - linuxkit/ca-certificates:fb5c7bf842a330f5b47cdf71f950fe0c85f4a772
+  - kuberneteskit/cni-plugins:f38003970813dc4dd67f8ad4f30da873cb5c1c86
+  - kuberneteskit/critools:f691dac016f4d9d9e5b7dadad2130175e6de2061
+  - kuberneteskit/kubelet:470d32f5b926efdef6954119f1e707614bdae213
+onboot:
+  - name: sysctl
+    image: linuxkit/sysctl:b51c3da02bc2fc9a53f699efc51f650ac17ffac8
+    binds:
+     - /etc/sysctl.d/01-kubernetes.conf:/etc/sysctl.d/01-kubernetes.conf
+    readonly: false
+  - name: sysfs
+    image: linuxkit/sysfs:640ebdbfd8f86178c69f76bc6cdac07feffd6825
+  - name: dhcpcd
+    image: linuxkit/dhcpcd:295b63ada3346faffddc16b631b247b234bf8fd0
+    command: ["/sbin/dhcpcd", "--nobackground", "-f", "/dhcpcd.conf", "-1"]
+  - name: metadata
+    image: linuxkit/metadata:be507a0718df8ed6733dfab1d6866672f446e8fd
+  - name: format
+    image: linuxkit/format:a604e93516455f89eb5dcfa2e437c07d4cc9203b
+  - name: mounts
+    image: linuxkit/mount:0eba853dfa99f01166831c30f37f6bb818b61f2f
+    command: ["/usr/bin/mountie", "/var/lib/"]
+services:
+  - name: getty
+    image: linuxkit/getty:32247863cace34f3b441b4c5d9d3f5cb5f64d189
+    env:
+     - INSECURE=true
+    cgroupsPath: systemreserved/getty
+  - name: rngd
+    image: linuxkit/rngd:00b9cc2e63ba3d5384f44bf01fa0d2bd6a97845a
+    cgroupsPath: systemreserved/rngd
+  - name: ntpd
+    image: linuxkit/openntpd:bf56d222d258b60bae4d286791bc76003e58db55
+    cgroupsPath: systemreserved/ntpd
+  - name: sshd
+    image: linuxkit/sshd:39d6bdc9a7489ceffa761ad5cb96c87b50d6732d
+    cgroupsPath: systemreserved/sshd
+files:
+  - path: /etc/kubernetes
+    directory: true
+  - path: /etc/sysctl.d/01-kubernetes.conf
+    contents: 'net.ipv4.ip_forward = 1'
+  - path: /etc/cni/net.d
+    directory: true
+  - path: /opt/cni/bin
+    directory: true
+  - path: root/.ssh/authorized_keys
+    source: ~/.ssh/id_rsa.pub
+    mode: "0600"
+    optional: true
+  - path: /etc/containerd/config.toml
+    contents: |
+      state = "/run/containerd"
+      root = "/var/lib/containerd"
+      snapshotter = "io.containerd.snapshotter.v1.overlayfs"
+      
+      [grpc]
+        address = "/run/containerd/containerd.sock"
+        uid = 0
+        gid = 0
+      
+      [debug]
+        address = "/run/containerd/debug.sock"
+        level = "info"
+      
+      [metrics]
+        address = ""
+trust:
+  org:
+    - linuxkit
+    - library

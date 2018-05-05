@@ -1,0 +1,6 @@
+org: kuberneteskit
+image: kubelet
+network: true
+config:
+  binds:
+  - /etc/resolv.conf:/etc/resolv.conf
