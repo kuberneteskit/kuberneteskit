@@ -25,7 +25,7 @@ make base
 ./boot.sh
 ```
 
-Currently this brings up the base system that has the kubelet, kubectl, and kubeadm binaries installed, but is not configured and the kubelet service is not running.
+Currently this brings up a single control plane host.
 
 ## Debugging
 
@@ -35,6 +35,20 @@ The base image runs an ssh container that allows you to access a namespaced shel
 
 ```sh
 ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@localhost
+```
+
+Verify that kubeadm has finished by checking if /etc/kubernetes/.kubeadm.init.finished exists.
+
+Check the kubeadm output
+
+```sh
+less /var/log/kubeadm.out
+```
+
+Check the kubelet logs
+
+```sh
+less /var/log/kubelet.out
 ```
 
 ### Entering the root namespace
