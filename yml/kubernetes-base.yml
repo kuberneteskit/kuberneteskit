@@ -8,7 +8,7 @@ init:
   - linuxkit/ca-certificates:fb5c7bf842a330f5b47cdf71f950fe0c85f4a772
   - kuberneteskit/cni-plugins:5155ae95269528b4d44e30e19fc341a243b345c2
   - kuberneteskit/critools:c0dd5fb3a733cbd3af8014fe46aae8d0391fefd7
-  - kuberneteskit/kubelet:470d32f5b926efdef6954119f1e707614bdae213
+  - kuberneteskit/kubelet:ba0153ca9b9a1117899ff27e0228a2624d5bdac3
 onboot:
   - name: sysctl
     image: linuxkit/sysctl:b51c3da02bc2fc9a53f699efc51f650ac17ffac8

@@ -1,3 +1,4 @@
 linuxkit
 *.qcow2
 *-state
+kubernetes-base.meta

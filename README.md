@@ -22,7 +22,7 @@ make base
 ## Running
 
 ```sh
-linuxkit run -publish 2222:22 -mem 2048 -cpus 2 -disk size=8 kubernetes-base.qcow2
+./boot.sh
 ```
 
 Currently this brings up the base system that has the kubelet, kubectl, and kubeadm binaries installed, but is not configured and the kubelet service is not running.
