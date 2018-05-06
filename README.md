@@ -13,7 +13,10 @@ for pkg in cni-plugins critools kubelet; do
   linuxkit pkg build -org kuberneteskit -disable-content-trust pkg/$pkg
 done
 
-linuxkit build -name kubernetes-base -format qcow2-bios -size 8G yml/kubernetes-base.yml
+# Ensure that the image yml definitions are up to date for package changes
+make update-hashes
+
+make base
 ```
 
 ## Running
@@ -36,14 +39,8 @@ ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@loc
 
 ### Entering the root namespace
 
-First, get the pid of a process running in the root namespace, such as containerd
-
-```sh
-pgrep containerd
-```
-
 Use nsenter to run a shell in the same namespaces as containerd
 
 ```sh
-nsenter -t <pid of containerd> -a ash -l
+nsenter -t `pgrep containerd | head -n 1` -a ash -l
 ```

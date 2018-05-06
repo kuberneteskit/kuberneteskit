@@ -6,8 +6,8 @@ init:
   - linuxkit/runc:acba8886e4b1318457c711700f695a02fef9493d
   - linuxkit/containerd:f197e7cbb2ede4370b75127c76de6f7b2e3d9873
   - linuxkit/ca-certificates:fb5c7bf842a330f5b47cdf71f950fe0c85f4a772
-  - kuberneteskit/cni-plugins:f38003970813dc4dd67f8ad4f30da873cb5c1c86
-  - kuberneteskit/critools:f691dac016f4d9d9e5b7dadad2130175e6de2061
+  - kuberneteskit/cni-plugins:5155ae95269528b4d44e30e19fc341a243b345c2
+  - kuberneteskit/critools:c0dd5fb3a733cbd3af8014fe46aae8d0391fefd7
   - kuberneteskit/kubelet:470d32f5b926efdef6954119f1e707614bdae213
 onboot:
   - name: sysctl
@@ -45,6 +45,11 @@ services:
 files:
   - path: /etc/kubernetes
     directory: true
+  - path: /etc/crictl.yaml
+    contents: |
+      runtime-endpoint: unix:///run/containerd/containerd.sock
+      image-endpoint: unix:///run/containerd/containerd.sock
+      timeout: 10
   - path: /etc/sysctl.d/01-kubernetes.conf
     contents: 'net.ipv4.ip_forward = 1'
   - path: /etc/cni/net.d

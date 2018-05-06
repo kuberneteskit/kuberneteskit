@@ -33,6 +33,51 @@ linuxkit_pkg_build: &linuxkit_pkg_build
         paths:
         - packages
 
+image_build: &image_build
+  docker:
+    - image: debian:stretch
+  steps:
+    - run:
+        name: Configure $PATH
+        command: echo 'export PATH=/workspace/bin:$PATH' >> $BASH_ENV
+    - run:
+        name: Install packages
+        # ca-certificates are needed for attach_workspace (and git over https)
+        command: apt-get update && apt-get install -y ca-certificates curl git make openssh-client
+    - attach_workspace:
+        at: /workspace
+    - checkout
+    - setup_remote_docker:
+        version: 17.06.1-ce
+    - run:
+        name: Importing packages from workspace
+        command: |
+          load() {
+              local pkg=$1
+              docker image load --input /workspace/packages/${pkg}.tar
+          }
+
+          for pkg in cni-plugins critools kubelet; do
+            load $pkg
+          done
+          echo
+          docker image ls --all
+          echo
+          git --no-pager diff
+    - run:
+        name: Build images
+        command: |
+          mkdir -p /workspace/images/kube-$KUBE_RUNTIME-$KUBE_NETWORK
+          IMAGE=${CIRCLE_JOB#image-}
+
+          # KUBE_FORMATS="iso-efi iso-bios" are much slower (especially for RUNTIME=docker) to build than tar.
+          # So for now just build tar files.
+          linuxkit build -name kubernetes-base -format tar yml/${IMAGE}.yml
+    - persist_to_workspace:
+        root: /workspace
+        paths:
+        - images
+
 version: 2
 jobs:
   dependencies:
@@ -78,12 +123,44 @@ jobs:
           root: /workspace
           paths:
           - bin
+  lint:
+    docker:
+      - image: debian:stretch
+    steps:
+      - run:
+          name: Configure $PATH
+          command: echo 'export PATH=/workspace/bin:$PATH' >> $BASH_ENV
+      - run:
+          name: Install packages
+          # ca-certificates are needed for attach_workspace (and git over https)
+          command: apt-get update && apt-get install -y ca-certificates git make openssh-client
+      - attach_workspace:
+          at: /workspace
+      - setup_remote_docker:
+          version: 17.06.1-ce
+      - run:
+          name: Docker version
+          command: |
+            docker version
+      - checkout
+      - run:
+          name: Check YML hashes
+          command: |
+            # Check yml hashes are up to date.
+            make update-hashes
+            if ! git diff --exit-code ; then
+                echo ""
+                echo "*** Hashes are not up to date."
+                exit 1
+            fi
   pkg-cni-plugins:
     <<: *linuxkit_pkg_build
   pkg-critools:
     <<: *linuxkit_pkg_build
   pkg-kubelet:
     <<: *linuxkit_pkg_build
+  image-kubernetes-base:
+    <<: *image_build
 
 workflows:
   version: 2
@@ -99,3 +176,9 @@ workflows:
       - pkg-kubelet:
           requires:
             - dependencies
+      - image-kubernetes-base:
+          requires:
+            - dependencies
+            - pkg-cni-plugins
+            - pkg-critools
+            - pkg-kubelet
