@@ -21,11 +21,27 @@ make base
 
 ## Running
 
+Running the below commands assumes that you are running on a Linux host with an existing virbr0 bridge device that is configured for use with `qemu-bridge-helper`
+
 ```sh
 ./boot.sh
 ```
 
 Currently this brings up a single control plane host.
+
+## Adding a node
+
+```sh
+KUBE_HOST_TYPE=node ./boot.sh
+```
+
+This will bring up an unconfigured system running the kubelet. You will need to retrieve the join command from the kubeadm log from the master.
+
+```sh
+grep 'kubeadm join' /var/log/kubeadm.out
+```
+
+When running the join command on the node you will need to also append `--ignore-preflight-errors=all`
 
 ## Debugging
 
@@ -33,8 +49,20 @@ Currently this brings up a single control plane host.
 
 The base image runs an ssh container that allows you to access a namespaced shell
 
+To connect to default controlplane instance:
+
 ```sh
-ssh -p 2222 -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@localhost
+host_mac=$(cat kube-controlplane-state/mac-addr)
+host_ip=$(arp -n | grep ${host_mac} | awk '{print $1}')
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${host_ip}
+```
+
+To connect to the default node instance:
+
+```sh
+host_mac=$(cat kube-node-state/mac-addr)
+host_ip=$(arp -n | grep ${host_mac} | awk '{print $1}')
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null root@${host_ip}
 ```
 
 Verify that kubeadm has finished by checking if /etc/kubernetes/.kubeadm.init.finished exists.

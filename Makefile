@@ -1,5 +1,4 @@
-KUBE_FORMATS ?= qcow2-bios
-KUBE_FORMAT_ARGS ?= "-size 8G"
+KUBE_FORMATS ?= kernel+initrd
 KUBE_FORMAT_ARGS := $(patsubst %,-format %,$(KUBE_FORMATS))
 
 .PHONY: all base
@@ -20,4 +19,4 @@ update-hashes:
 .PHONY: clean
 clean:
 	rm -f -r \
-	  *.qcow2 linuxkit *-state
+	  kubernetes-base-{kernel,initrd.img,cmdline,state} linuxkit

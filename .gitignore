@@ -1,4 +1,6 @@
 linuxkit
 *.qcow2
-*-state
-kubernetes-base.meta
+kube-*-state
+*-cmdline
+*-initrd.img
+*-kernel
