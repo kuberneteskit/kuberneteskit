@@ -11,6 +11,7 @@ if [[ "${KUBE_CP_COUNT}" > 1 ]]; then
 fi
 
 echo "Booting the control plane instance..."
+mkdir -p kube-controlplane-state
 ./boot.sh &> kube-controlplane-state/console.out &
 
 for node_num in $(seq 1 ${KUBE_NODE_COUNT}); do
